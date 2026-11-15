@@ -281,11 +281,15 @@ input {
 }
 
 .country-card {
+  display: block;
   min-width: 0;
   padding: 21px 22px 18px;
   border: 1px solid #e4e7e0;
   border-radius: 14px;
   background: rgb(255 255 255 / 76%);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
   transition:
     transform 150ms ease,
     border-color 150ms ease,
@@ -354,6 +358,107 @@ input {
   font-size: 10px;
 }
 
+.detail-view {
+  padding: clamp(24px, 5vw, 46px);
+  border: 1px solid #e4e7e0;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 82%);
+  box-shadow: 0 18px 50px rgb(36 48 37 / 5%);
+}
+
+.back-button {
+  margin: 0 0 34px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.back-button:hover {
+  color: #203e2f;
+}
+
+.detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.detail-flag {
+  display: grid;
+  width: 104px;
+  height: 76px;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  background: #f1f2ee;
+  font-size: 48px;
+  place-items: center;
+}
+
+.detail-flag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-heading .eyebrow {
+  margin-bottom: 8px;
+}
+
+.detail-title {
+  margin: 0;
+  font-family: Manrope, sans-serif;
+  font-size: clamp(28px, 5vw, 42px);
+  letter-spacing: -0.07em;
+  line-height: 1.1;
+}
+
+.detail-subtitle {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.detail-description {
+  margin: 28px 0;
+  color: #5f695f;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.detail-facts {
+  display: grid;
+  margin: 0;
+  border-top: 1px solid #e9ece6;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.detail-row {
+  min-width: 0;
+  padding: 16px 14px 16px 0;
+  border-bottom: 1px solid #e9ece6;
+}
+
+.detail-label {
+  color: #92998f;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  margin: 7px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .footer {
   display: flex;
   min-height: 70px;
@@ -396,6 +501,22 @@ input {
   }
 
   .country-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-heading {
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .detail-flag {
+    width: 72px;
+    height: 54px;
+    border-radius: 9px;
+    font-size: 34px;
+  }
+
+  .detail-facts {
     grid-template-columns: 1fr;
   }
 

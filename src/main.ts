@@ -1,3 +1,4 @@
+import { createCountryDetailsView } from './countryDetailsView';
 import type { Country } from './mapCountryResponse';
 import { createSearchController, type SearchState } from './searchController';
 
@@ -86,9 +87,11 @@ function formattedPopulation(population: number): string {
   return new Intl.NumberFormat('en').format(population);
 }
 
-function createCountryCard(country: Country): HTMLElement {
-  const card = createElement('article', 'country-card');
-  const top = createElement('div', 'country-card-top');
+function createCountryCard(country: Country): HTMLButtonElement {
+  const card = createElement('button', 'country-card');
+  card.type = 'button';
+  card.setAttribute('aria-label', `View details for ${country.name}`);
+  const top = createElement('span', 'country-card-top');
   const flag = createElement('span', 'country-flag');
 
   if (/^https?:\/\//i.test(country.flag)) {
@@ -111,11 +114,11 @@ function createCountryCard(country: Country): HTMLElement {
   arrow.textContent = '↗';
   top.append(flag, arrow);
 
-  const name = createElement('h2', 'country-name');
+  const name = createElement('span', 'country-name');
   name.textContent = country.name;
-  const capital = createElement('p', 'country-capital');
+  const capital = createElement('span', 'country-capital');
   capital.textContent = country.capital;
-  const metadata = createElement('div', 'country-metadata');
+  const metadata = createElement('span', 'country-metadata');
   const region = createElement('span');
   region.textContent = country.region;
   const population = createElement('span');
@@ -123,15 +126,34 @@ function createCountryCard(country: Country): HTMLElement {
   metadata.append(region, population);
 
   card.append(top, name, capital, metadata);
+  card.addEventListener('click', () => {
+    selectedCountry = country;
+    renderState(currentState);
+  });
   return card;
 }
 
+let selectedCountry: Country | undefined;
+let currentState: SearchState = { kind: 'idle', query: '', countries: [] };
+
 function renderState(state: SearchState): void {
+  currentState = state;
   results.setAttribute(
     'aria-busy',
     state.kind === 'loading' ? 'true' : 'false',
   );
   results.replaceChildren();
+
+  if (selectedCountry && state.kind === 'results') {
+    status.textContent = 'COUNTRY PROFILE';
+    results.append(
+      createCountryDetailsView(selectedCountry, () => {
+        selectedCountry = undefined;
+        renderState(currentState);
+      }),
+    );
+    return;
+  }
 
   if (state.kind === 'idle') {
     status.textContent = '';
@@ -201,12 +223,14 @@ function renderState(state: SearchState): void {
 const searchController = createSearchController(renderState);
 
 searchInput.addEventListener('input', () => {
+  selectedCountry = undefined;
   clearButton.hidden = searchInput.value.length === 0;
   searchController.setQuery(searchInput.value);
 });
 
 clearButton.addEventListener('click', () => {
   searchInput.value = '';
+  selectedCountry = undefined;
   clearButton.hidden = true;
   searchController.setQuery('');
   searchInput.focus();
