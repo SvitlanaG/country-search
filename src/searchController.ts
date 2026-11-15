@@ -1,7 +1,7 @@
 import { debounce } from './debounce';
+import { searchCountriesCached } from './countryRepository';
 import { mapCountryResponse, type Country } from './mapCountryResponse';
 import { classifyRequestError, type RequestErrorKind } from './requestError';
-import { searchCountries } from './searchCountries';
 
 export type SearchState =
   | { kind: 'idle'; query: ''; countries: [] }
@@ -105,7 +105,7 @@ export function createSearchController(
     const signal = combineSignals([requestController.signal, timeout.signal]);
 
     try {
-      const rawCountries = await searchCountries(query, signal);
+      const rawCountries = await searchCountriesCached(query, signal);
 
       if (
         destroyed ||
