@@ -1,3 +1,6 @@
+import type { Country } from './mapCountryResponse';
+import { createSearchController, type SearchState } from './searchController';
+
 function createElement<K extends keyof HTMLElementTagNameMap>(
   tagName: K,
   className?: string,
@@ -41,17 +44,30 @@ description.textContent =
 const searchForm = createElement('form', 'search-form');
 searchForm.setAttribute('role', 'search');
 searchForm.addEventListener('submit', (event) => event.preventDefault());
+const searchShell = createElement('div', 'search-shell');
 const searchInput = createElement('input', 'search-input');
 searchInput.type = 'search';
 searchInput.name = 'country';
 searchInput.autocomplete = 'off';
 searchInput.placeholder = 'Try “Portugal” or “Japan”';
 searchInput.setAttribute('aria-label', 'Search countries by name');
+const clearButton = createElement('button', 'clear-button');
+clearButton.type = 'button';
+clearButton.textContent = '×';
+clearButton.setAttribute('aria-label', 'Clear search');
+clearButton.hidden = true;
+searchShell.append(searchInput, clearButton);
 const searchHint = createElement('p', 'search-hint');
 searchHint.textContent = 'Search updates as you type';
-searchForm.append(searchInput, searchHint);
+searchForm.append(searchShell, searchHint);
 
-content.append(eyebrow, title, description, searchForm);
+const status = createElement('p', 'search-status');
+status.setAttribute('role', 'status');
+status.setAttribute('aria-live', 'polite');
+const results = createElement('section', 'results');
+results.setAttribute('aria-label', 'Country search results');
+
+content.append(eyebrow, title, description, searchForm, status, results);
 
 const footer = createElement('footer', 'footer');
 const footerLabel = createElement('span');
@@ -65,3 +81,135 @@ footer.append(footerLabel, footerLink);
 
 app.append(header, content, footer);
 document.body.append(app);
+
+function formattedPopulation(population: number): string {
+  return new Intl.NumberFormat('en').format(population);
+}
+
+function createCountryCard(country: Country): HTMLElement {
+  const card = createElement('article', 'country-card');
+  const top = createElement('div', 'country-card-top');
+  const flag = createElement('span', 'country-flag');
+
+  if (/^https?:\/\//i.test(country.flag)) {
+    const image = createElement('img');
+    image.src = country.flag;
+    image.alt = `${country.name} flag`;
+    image.loading = 'lazy';
+    image.addEventListener('error', () => {
+      flag.replaceChildren();
+      flag.textContent = country.emoji || '🌐';
+    });
+    flag.append(image);
+  } else {
+    flag.textContent = country.flag || country.emoji || '🌐';
+    flag.setAttribute('aria-label', `${country.name} flag`);
+  }
+
+  const arrow = createElement('span', 'country-card-arrow');
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.textContent = '↗';
+  top.append(flag, arrow);
+
+  const name = createElement('h2', 'country-name');
+  name.textContent = country.name;
+  const capital = createElement('p', 'country-capital');
+  capital.textContent = country.capital;
+  const metadata = createElement('div', 'country-metadata');
+  const region = createElement('span');
+  region.textContent = country.region;
+  const population = createElement('span');
+  population.textContent = `${formattedPopulation(country.population)} people`;
+  metadata.append(region, population);
+
+  card.append(top, name, capital, metadata);
+  return card;
+}
+
+function renderState(state: SearchState): void {
+  results.setAttribute(
+    'aria-busy',
+    state.kind === 'loading' ? 'true' : 'false',
+  );
+  results.replaceChildren();
+
+  if (state.kind === 'idle') {
+    status.textContent = '';
+    const welcome = createElement('div', 'empty-state');
+    const welcomeTitle = createElement('h2');
+    welcomeTitle.textContent = 'The world is a big place.';
+    const welcomeCopy = createElement('p');
+    welcomeCopy.textContent =
+      'Start with a country name and explore from there.';
+    welcome.append(welcomeTitle, welcomeCopy);
+    results.append(welcome);
+    return;
+  }
+
+  if (state.kind === 'loading') {
+    status.textContent = 'SEARCHING';
+    const loading = createElement('div', 'loading-state');
+    const spinner = createElement('span', 'spinner');
+    spinner.setAttribute('aria-hidden', 'true');
+    const label = createElement('p');
+    label.textContent = `Looking for ${state.query}…`;
+    loading.append(spinner, label);
+    results.append(loading);
+    return;
+  }
+
+  if (state.kind === 'not-found') {
+    status.textContent = 'NO MATCHES';
+    const empty = createElement('div', 'empty-state');
+    const emptyTitle = createElement('h2');
+    emptyTitle.textContent = 'No country found';
+    const emptyCopy = createElement('p');
+    emptyCopy.textContent = `We couldn’t find “${state.query}”. Try another spelling.`;
+    empty.append(emptyTitle, emptyCopy);
+    results.append(empty);
+    return;
+  }
+
+  if (state.kind === 'error') {
+    status.textContent = 'SEARCH INTERRUPTED';
+    const errorCard = createElement('div', 'error-state');
+    const errorTitle = createElement('h2');
+    errorTitle.textContent = 'That search didn’t go through';
+    const errorCopy = createElement('p');
+    errorCopy.textContent =
+      state.error === 'timeout'
+        ? 'The request took too long. Check your connection and try again.'
+        : state.error === 'http'
+          ? 'The country service returned an error. Please try again.'
+          : 'We couldn’t reach the country service. Check your connection and try again.';
+    const retry = createElement('button', 'retry-button');
+    retry.type = 'button';
+    retry.textContent = 'Try again  ↗';
+    retry.addEventListener('click', () => searchController.retry());
+    errorCard.append(errorTitle, errorCopy, retry);
+    results.append(errorCard);
+    return;
+  }
+
+  status.textContent = `${state.countries.length} COUNTRIES FOUND`;
+  const grid = createElement('div', 'country-grid');
+  for (const country of state.countries)
+    grid.append(createCountryCard(country));
+  results.append(grid);
+}
+
+const searchController = createSearchController(renderState);
+
+searchInput.addEventListener('input', () => {
+  clearButton.hidden = searchInput.value.length === 0;
+  searchController.setQuery(searchInput.value);
+});
+
+clearButton.addEventListener('click', () => {
+  searchInput.value = '';
+  clearButton.hidden = true;
+  searchController.setQuery('');
+  searchInput.focus();
+});
+
+renderState({ kind: 'idle', query: '', countries: [] });
