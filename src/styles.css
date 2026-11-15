@@ -188,6 +188,44 @@ input {
   font-size: 11px;
 }
 
+.history-panel {
+  display: flex;
+  margin-top: 22px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-panel[hidden] {
+  display: none;
+}
+
+.history-label {
+  margin-right: 3px;
+  color: #969c94;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.history-chip {
+  padding: 7px 11px;
+  border: 1px solid #e1e5de;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 55%);
+  color: #5f695f;
+  cursor: pointer;
+  font-size: 10px;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
+}
+
+.history-chip:hover {
+  border-color: #a9b9a7;
+  background: white;
+}
+
 .search-status {
   min-height: 26px;
   margin: 56px 0 14px;

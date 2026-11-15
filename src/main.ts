@@ -1,6 +1,11 @@
 import { createCountryDetailsView } from './countryDetailsView';
 import type { Country } from './mapCountryResponse';
 import { createSearchController, type SearchState } from './searchController';
+import {
+  addSearchHistory,
+  loadSearchHistory,
+  type SearchHistoryStorage,
+} from './searchHistory';
 
 function createElement<K extends keyof HTMLElementTagNameMap>(
   tagName: K,
@@ -62,13 +67,23 @@ const searchHint = createElement('p', 'search-hint');
 searchHint.textContent = 'Search updates as you type';
 searchForm.append(searchShell, searchHint);
 
+const historyPanel = createElement('div', 'history-panel');
+historyPanel.hidden = true;
 const status = createElement('p', 'search-status');
 status.setAttribute('role', 'status');
 status.setAttribute('aria-live', 'polite');
 const results = createElement('section', 'results');
 results.setAttribute('aria-label', 'Country search results');
 
-content.append(eyebrow, title, description, searchForm, status, results);
+content.append(
+  eyebrow,
+  title,
+  description,
+  searchForm,
+  historyPanel,
+  status,
+  results,
+);
 
 const footer = createElement('footer', 'footer');
 const footerLabel = createElement('span');
@@ -82,6 +97,38 @@ footer.append(footerLabel, footerLink);
 
 app.append(header, content, footer);
 document.body.append(app);
+
+let historyStorage: SearchHistoryStorage | undefined;
+try {
+  historyStorage = window.localStorage;
+} catch {
+  historyStorage = undefined;
+}
+let searchHistory = historyStorage ? loadSearchHistory(historyStorage) : [];
+
+function renderHistory(): void {
+  historyPanel.replaceChildren();
+  historyPanel.hidden = searchHistory.length === 0;
+  if (searchHistory.length === 0) return;
+
+  const label = createElement('span', 'history-label');
+  label.textContent = 'RECENT';
+  historyPanel.append(label);
+
+  for (const query of searchHistory) {
+    const button = createElement('button', 'history-chip');
+    button.type = 'button';
+    button.textContent = query;
+    button.addEventListener('click', () => {
+      selectedCountry = undefined;
+      searchInput.value = query;
+      clearButton.hidden = false;
+      searchController.setQuery(query);
+      searchInput.focus();
+    });
+    historyPanel.append(button);
+  }
+}
 
 function formattedPopulation(population: number): string {
   return new Intl.NumberFormat('en').format(population);
@@ -137,6 +184,14 @@ let selectedCountry: Country | undefined;
 let currentState: SearchState = { kind: 'idle', query: '', countries: [] };
 
 function renderState(state: SearchState): void {
+  if (
+    (state.kind === 'results' || state.kind === 'not-found') &&
+    historyStorage
+  ) {
+    searchHistory = addSearchHistory(historyStorage, state.query);
+    renderHistory();
+  }
+
   currentState = state;
   results.setAttribute(
     'aria-busy',
@@ -221,6 +276,7 @@ function renderState(state: SearchState): void {
 }
 
 const searchController = createSearchController(renderState);
+renderHistory();
 
 searchInput.addEventListener('input', () => {
   selectedCountry = undefined;
